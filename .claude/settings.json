@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(py -m lidovi:*)",
+      "Bash(python -m lidovi:*)",
+      "Bash(python3 -m lidovi:*)",
+      "mcp__claude-in-chrome"
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+rad/
+rezultati/
+istorija.json
+.claude/settings.local.json

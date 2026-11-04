@@ -18,7 +18,7 @@ Podaci se čuvaju u `firme/` ovog repozitorijuma: `tabele/` (sve dosadašnje tab
 git pull
 py -m lidovi repo
 ```
-- Ako `repo` ispiše `STOP: ... JAVAN`: reci korisniku da repo prebaci na **Private** (poruka kaže gde) i **ne radi push** dok to ne uradi.
+- Ako `repo` ispiše `STOP: ... JAVAN`: reci korisniku da repo prebaci na **Private** (poruka kaže gde) i **ne radi push** dok to ne uradi. Ako korisnik izričito kaže da javni repo može, upiši `"javni_repo_ok": true` u `firme/podesavanja.json`.
   Skupljanje i draftovi mogu da se urade, ali `firme/` ne sme na javni GitHub (to su lični podaci).
 - Ako `git pull` ne uspe zbog lokalnih izmena, javi korisniku, ne briši ništa.
 

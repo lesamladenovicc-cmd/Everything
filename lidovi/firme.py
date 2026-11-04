@@ -48,6 +48,7 @@ PODRAZUMEVANO = {
     "agencija": "Prikaz",
     "kontakt": "",           # npr. "064 123 4567 · instagram.com/prikaz.rs"
     "kategorije": list(TIPOVI),
+    "javni_repo_ok": False,  # True = korisnik svesno dozvolio tabele na javnom repou
     "beograd_udeo": 0.6,     # koliki deo tabele ide na Beograd, ostatak ostali gradovi
     "gradovi": [
         "Novi Sad", "Niš", "Kragujevac", "Subotica", "Zrenjanin", "Pančevo", "Čačak",
@@ -309,6 +310,9 @@ def proveri_repo():
     except requests.RequestException as e:
         return False, f"ne mogu da proverim GitHub ({e})"
     if r.status_code == 200 and not r.json().get("private"):
+        if podesavanja().get("javni_repo_ok"):
+            return True, (f"{vlasnik}/{ime} je JAVAN, ali je korisnik dozvolio push (javni_repo_ok). "
+                          "Svako može da vidi i preuzme tabele.")
         return False, (f"{vlasnik}/{ime} je JAVAN. Tabele sa mejlovima ne smeju na javni repo. "
                        f"Na GitHub-u: Settings → General → Danger Zone → Change visibility → Private.")
     if r.status_code in (200, 404):  # 404 bez prijave = privatan repo

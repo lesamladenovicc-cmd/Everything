@@ -9,3 +9,9 @@ proverava njihov Google profil i pravi .txt tabelu u `rezultati/`.
 - `istorija.json` pamti sve izvezene lidove da se ne ponavljaju. Ne briši ga osim ako korisnik to traži.
 - `rad/trenutno.json` je stanje trenutnog pokretanja; `sakupi` ga pravi iz početka.
 - Korisnik prodaje sajtove, SEO i marketing: najbolji lid je bez sajta i sa slabim ili nepostojećim Google profilom.
+
+# IG autopilot (@prikaz.rs)
+
+- Skill `.claude/skills/prikaz-ig-autopilot/`, alat `python -m instagram <komanda>`, uputstvo `instagram/README.md`.
+- Radi u oblaku preko zvaničnog Instagram API-ja (token `IG_TOKEN` u okruženju), zakazani zadatak svaki sat.
+- Plan objava je `instagram/plan.json`; glas brenda i pravila za odgovore su u `instagram/znanje.md`.

@@ -44,6 +44,9 @@ da poveže Gmail konektor sa prikazreklame@gmail.com (claude.ai → Settings →
 
 ## Korak 4: nova tabela
 
+Prvo `py -m lidovi mejlovi --broj 1`: ako poslednja kampanja još ima mejlove bez drafta, NE pravi novu tabelu,
+nego idi pravo na korak 5 i završi tu kampanju.
+
 ```
 py -m lidovi firme --cilj 500
 ```

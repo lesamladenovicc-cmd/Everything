@@ -1,0 +1,4 @@
+{
+  "_uputstvo": "Svaka objava: id, kada (ISO sa zonom, npr. 2026-11-06T19:30:00+01:00), tip (post|karusel|reel|story), mediji (javni https URL-ovi slika .jpg ili videa .mp4), caption (za story nije potreban). Storiji: više slika u jednoj stavci, a stavke za storije bar 2h razmaka.",
+  "objave": []
+}

@@ -1,0 +1,37 @@
+{
+  "posiljalac": "prikazreklame@gmail.com",
+  "potpis": "Aleksandar Mladenović",
+  "agencija": "Prikaz",
+  "kontakt": "instagram.com/prikaz.rs",
+  "kategorije": [
+    "restorani",
+    "kafici-i-barovi",
+    "picerije",
+    "poslasticarnice",
+    "splavovi-i-kafane"
+  ],
+  "beograd_udeo": 0.6,
+  "gradovi": [
+    "Novi Sad",
+    "Niš",
+    "Kragujevac",
+    "Subotica",
+    "Zrenjanin",
+    "Pančevo",
+    "Čačak",
+    "Kraljevo",
+    "Novi Pazar",
+    "Smederevo",
+    "Leskovac",
+    "Valjevo",
+    "Šabac",
+    "Užice",
+    "Vranje",
+    "Sombor",
+    "Kruševac",
+    "Kikinda",
+    "Jagodina",
+    "Zlatibor"
+  ],
+  "javni_repo_ok": true
+}

@@ -1,13 +1,15 @@
-"""Komande: sakupi, status, kontakt, dodaj, izaberi, google, zavrsi.
+"""Komande: sakupi, status, kontakt, dodaj, izaberi, google, zavrsi
+(+ mejl kampanja: repo, podesi, firme, mejlovi, draftovano, odjava).
 
 Pokretanje:  python -m lidovi <komanda> [opcije]   (na Windows-u može i: py -m lidovi ...)
 """
 
 import argparse
+import json
 import sys
 from datetime import datetime
 
-from lidovi import baza
+from lidovi import baza, firme
 from lidovi.baza import Istorija, Rad, ima_kontakt
 from lidovi.common import ocisti_sajt, slug, sredi_mailove, sredi_telefone
 from lidovi.izvori import info011, kosnica, planplus
@@ -265,6 +267,91 @@ def cmd_zavrsi(a):
     print("Istorija ažurirana: ovi lidovi se neće ponoviti u sledećim pokretanjima.")
 
 
+# ---------- mejl kampanja (kafići, restorani...) ----------
+
+def cmd_repo(a):
+    ok, poruka = firme.proveri_repo()
+    print(("OK: " if ok else "STOP: ") + poruka)
+    if not ok:
+        raise SystemExit(1)
+
+
+def cmd_podesi(a):
+    p = firme.podesavanja()
+    for polje in ("potpis", "kontakt", "agencija", "posiljalac"):
+        if getattr(a, polje) is not None:
+            p[polje] = getattr(a, polje).strip()
+    firme.sacuvaj_podesavanja(p)
+    for polje in ("posiljalac", "agencija", "potpis", "kontakt"):
+        print(f"{polje:<11} {p[polje] or '(prazno)'}")
+    if not p["potpis"]:
+        print("SLEDEĆE: pitaj korisnika kojim imenom se potpisuje, pa: py -m lidovi podesi --potpis \"<ime>\" [--kontakt \"<telefon>\"]")
+
+
+def cmd_firme(a):
+    p = firme.podesavanja()
+    if not p["potpis"]:
+        raise SystemExit("Nema potpisa za mejlove. Prvo: py -m lidovi podesi --potpis \"<ime>\" [--kontakt \"<telefon>\"]")
+    datum = f"{datetime.now():%Y-%m-%d_%H%M}"
+    nove = firme.sakupi(a.cilj, samo_beograd=a.samo_beograd, gradovi=_lista(a.gradovi) or None)
+    if not nove:
+        raise SystemExit("Nije nađena nijedna nova firma sa mejlom.")
+    tabela = firme.sacuvaj_tabelu(nove, datum)
+    kampanja = firme.napravi_kampanju(nove, datum)
+    po_gradu = {}
+    for l in nove:
+        g = firme._grad_i_adresa(l["mesto"])[0]
+        po_gradu[g] = po_gradu.get(g, 0) + 1
+    bez_sajta = sum(1 for l in nove if not l["sajt"])
+    print()
+    print(f"GOTOVO: {len(nove)} novih firmi sa mejlom (bez sajta: {bez_sajta}) -> {tabela}")
+    print("Po gradu: " + ", ".join(f"{g} {n}" for g, n in sorted(po_gradu.items(), key=lambda x: -x[1])))
+    print(f"Mejlovi spremni: {kampanja}")
+    if len(nove) < a.cilj:
+        print(f"PAŽNJA: fali {a.cilj - len(nove)} do cilja (nema više novih firmi sa javnim mejlom u ovim gradovima).")
+    print("SLEDEĆE: py -m lidovi mejlovi --broj 25  (pa napravi Gmail draftove)")
+
+
+def cmd_mejlovi(a):
+    putanja, k = firme.poslednja_kampanja()
+    ostalo = [m for m in k["mejlovi"] if not m.get("draft")]
+    gotovo = len(k["mejlovi"]) - len(ostalo)
+    print(f"Kampanja {putanja.name}: draftova {gotovo}/{len(k['mejlovi'])} | pošiljalac {k['posiljalac']}")
+    if a.pregled:
+        for m in ostalo[: a.broj]:
+            print(f"--- id {m['id']} -> {m['to']}\nNaslov: {m['naslov']}\n{m['telo']}\n")
+        return
+    if not ostalo:
+        print("SLEDEĆE: svi draftovi su napravljeni. Commit + push firme/, pa proveri da li Apps Script šalje.")
+        return
+    odj = firme.odjave()
+    for m in ostalo:
+        if m["to"] in odj:
+            m["draft"] = "preskocen-odjava"
+    firme._upisi_kampanju(putanja, k)
+    sledeci = [m for m in ostalo if not m.get("draft")][: a.broj]
+    print("SLEDEĆE: za svaki red napravi Gmail draft (to, subject=naslov, body=telo), pa: py -m lidovi draftovano --id <id> <id> ...")
+    print(json.dumps([{"id": m["id"], "to": m["to"], "naslov": m["naslov"], "telo": m["telo"]} for m in sledeci],
+                     ensure_ascii=False, indent=1))
+
+
+def cmd_draftovano(a):
+    putanja, k = firme.poslednja_kampanja()
+    ids = {int(x) for v in a.id for x in v.replace(",", " ").split()}
+    for m in k["mejlovi"]:
+        if m["id"] in ids:
+            m["draft"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    firme._upisi_kampanju(putanja, k)
+    gotovo = sum(1 for m in k["mejlovi"] if m.get("draft"))
+    print(f"Označeno {len(ids)}. Draftova: {gotovo}/{len(k['mejlovi'])}")
+    print("SLEDEĆE: " + ("py -m lidovi mejlovi --broj 25" if gotovo < len(k["mejlovi"]) else "commit + push firme/"))
+
+
+def cmd_odjava(a):
+    nove = firme.dodaj_odjave(_lista(a.mail), a.razlog)
+    print(f"Dodato u odjave: {len(nove)} ({', '.join(nove) or 'već su bili tu'})")
+
+
 def main(argv=None):
     for tok in (sys.stdout, sys.stderr):
         try:
@@ -319,6 +406,36 @@ def main(argv=None):
     s = sub.add_parser("zavrsi", help="napravi .txt u rezultati/ i upiši u istoriju")
     s.add_argument("--bez-google", action="store_true")
     s.set_defaults(f=cmd_zavrsi)
+
+    s = sub.add_parser("repo", help="proveri da je GitHub repo privatan (pre push-a tabela)")
+    s.set_defaults(f=cmd_repo)
+
+    s = sub.add_parser("podesi", help="potpis i kontakt za mejlove")
+    s.add_argument("--potpis")
+    s.add_argument("--kontakt")
+    s.add_argument("--agencija")
+    s.add_argument("--posiljalac")
+    s.set_defaults(f=cmd_podesi)
+
+    s = sub.add_parser("firme", help="nova tabela kafića/restorana sa mejlom (bez ranijih) + tekst mejlova")
+    s.add_argument("--cilj", type=int, default=500)
+    s.add_argument("--samo-beograd", action="store_true")
+    s.add_argument("--gradovi", action="append", help='npr. --gradovi "Novi Sad, Niš"')
+    s.set_defaults(f=cmd_firme)
+
+    s = sub.add_parser("mejlovi", help="sledeći mejlovi za koje treba napraviti draft")
+    s.add_argument("--broj", type=int, default=25)
+    s.add_argument("--pregled", action="store_true", help="samo prikaži tekst")
+    s.set_defaults(f=cmd_mejlovi)
+
+    s = sub.add_parser("draftovano", help="označi da je draft napravljen")
+    s.add_argument("--id", nargs="+", action="extend", required=True, help="npr. --id 1 2 3 ili --id 1,2,3")
+    s.set_defaults(f=cmd_draftovano)
+
+    s = sub.add_parser("odjava", help="mejl koji ne želi poruke ili ne postoji")
+    s.add_argument("--mail", action="append", required=True)
+    s.add_argument("--razlog", default="rekao NE")
+    s.set_defaults(f=cmd_odjava)
 
     a = p.parse_args(argv)
     a.f(a)

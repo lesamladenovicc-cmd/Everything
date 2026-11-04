@@ -72,6 +72,19 @@ py -m lidovi zavrsi --bez-google
 py -m lidovi status --sve
 ```
 
+## Mejl kampanja: 500 kafića i restorana
+
+U Claude-u: `/kafici-restorani` (ili `/kafici-restorani 300 samo Beograd`).
+
+1. `git pull` povuče sve dosadašnje tabele iz `firme/tabele/`, pa proveri da je repo **privatan**.
+2. Pravi novu tabelu `firme/tabele/firme_<datum>.tsv` sa do 500 kafića, restorana, picerija, poslastičarnica i kafana
+   (60% Beograd, ostatak Novi Sad, Niš, Kragujevac i ostali gradovi). Svaka ima javni mejl; firme iz ranijih tabela,
+   `istorija.json` i `firme/odjave.txt` se preskaču.
+3. Za svaku napiše kratak lični mejl i napravi **draft** u Gmail-u prikazreklame@gmail.com (Gmail konektor mora biti povezan sa tim nalogom).
+4. Šalje ih Google Apps Script polako: pon–pet 9–17h, 15 prvog dana pa do 40 dnevno. Postavljanje: `slanje/UPUTSTVO.md`.
+
+> `firme/` sadrži mejlove i telefone, pa sme na GitHub **samo ako je repozitorijum privatan**. `py -m lidovi repo` to proverava.
+
 ## Prebacivanje na novi repozitorijum
 
 Kod kuće napravi **novi prazan** repozitorijum na GitHub-u (bez README-a), pa u terminalu:

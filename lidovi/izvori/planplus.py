@@ -61,35 +61,44 @@ def lidovi(delatnost, grad, max_stranica=6):
         return
     print("  [Plan Plus] kategorije: " + ", ".join(k for k, _ in kategorije))
     for kat, naziv_kat in kategorije:
-        for strana in range(1, max_stranica + 1):
-            url = f"{BAZA}/{grad_slug}/{kat}" + (f"/{strana}" if strana > 1 else "")
-            r = get(url)
-            if not r:
-                break
-            s = BeautifulSoup(r.text, "html.parser")
-            kutije = s.select("div.box.box-item")
-            if not kutije:
-                break
-            osnovni = []
-            for b in kutije:
-                if b.find(string=re.compile("privremeno zatvoren|trajno zatvoren", re.I)):
-                    continue
-                a = b.select_one("h2 a")
-                if not a:
-                    continue
-                telefoni = [t["href"][4:] for t in b.find_all("a", href=re.compile(r"^tel:"))]
-                adresa = b.get("data-address") or ""
-                osnovni.append({
-                    "naziv": b.get("data-name") or a.get_text(strip=True),
-                    "zanimanje": naziv_kat if naziv_kat and naziv_kat != kat else kat.replace("-", " ").capitalize(),
-                    "mesto": grad.strip().title() + (f" ({adresa})" if adresa else ""),
-                    "telefoni": sredi_telefone(telefoni),
-                    "link": urljoin(BAZA, a["href"]),
-                    "izvor": "Plan Plus",
-                })
-            with ThreadPoolExecutor(max_workers=4) as ex:
-                detalji = list(ex.map(lambda x: _detalji(x["link"]), osnovni))
-            for lid, (sajt, mailovi) in zip(osnovni, detalji):
-                lid["sajt"] = sajt
-                lid["mailovi"] = mailovi
-                yield lid
+        yield from iz_kategorije(grad, kat, naziv_kat, max_stranica)
+
+
+def iz_kategorije(grad, kat, naziv_kat="", max_stranica=6, preskoci=None, radnika=4):
+    """Sve firme iz jedne kategorije grada. `preskoci(lid)` -> True izbacuje lid pre otvaranja
+    njegove stranice (štedi vreme kad je firma već poznata)."""
+    grad_slug = slug(grad)
+    for strana in range(1, max_stranica + 1):
+        url = f"{BAZA}/{grad_slug}/{kat}" + (f"/{strana}" if strana > 1 else "")
+        r = get(url)
+        if not r:
+            break
+        s = BeautifulSoup(r.text, "html.parser")
+        kutije = s.select("div.box.box-item")
+        if not kutije:
+            break
+        osnovni = []
+        for b in kutije:
+            if b.find(string=re.compile("privremeno zatvoren|trajno zatvoren", re.I)):
+                continue
+            a = b.select_one("h2 a")
+            if not a:
+                continue
+            telefoni = [t["href"][4:] for t in b.find_all("a", href=re.compile(r"^tel:"))]
+            adresa = b.get("data-address") or ""
+            lid = {
+                "naziv": b.get("data-name") or a.get_text(strip=True),
+                "zanimanje": naziv_kat if naziv_kat and naziv_kat != kat else kat.replace("-", " ").capitalize(),
+                "mesto": grad.strip().title() + (f" ({adresa})" if adresa else ""),
+                "telefoni": sredi_telefone(telefoni),
+                "link": urljoin(BAZA, a["href"]),
+                "izvor": "Plan Plus",
+            }
+            if not (preskoci and preskoci(lid)):
+                osnovni.append(lid)
+        with ThreadPoolExecutor(max_workers=radnika) as ex:
+            detalji = list(ex.map(lambda x: _detalji(x["link"]), osnovni))
+        for lid, (sajt, mailovi) in zip(osnovni, detalji):
+            lid["sajt"] = sajt
+            lid["mailovi"] = mailovi
+            yield lid
